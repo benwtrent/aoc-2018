@@ -1,5 +1,8 @@
 (ns advent-of-code-2018.core)
 
+;;; https://adventofcode.com/2018
+
+;;https://adventofcode.com/2018/day/1
 (defn day1-p1 [freq]
   (reduce + freq))
 
@@ -15,3 +18,327 @@
         (recur (mod (+ pos 1) size) (conj seen cur) (+ cur (get freq pos)))))))
 
 (day1-p2 day1-input)                                        ;56752
+
+;Day 2
+;;https://adventofcode.com/2018/day/2
+(def day2-input ["kbqwtcvzgumhpwelrnaxydpfuj"
+                 "kbqwtcvzgsmhpoelryaxydiqij"
+                 "kbqwpcvzssmhpoelgnaxydifuj"
+                 "kbqgtcvxgsmhpoalrnaxydifuj"
+                 "kbqwtcvygsmhpoelrnaxydiaut"
+                 "kbqwtcvjgsmhpoelrnawydzfuj"
+                 "kbqftcvzgsmhpoeprnaxydifus"
+                 "rbqwtcgzgsxhpoelrnaxydifuj"
+                 "kbqwtlvzgvmhpoelrnaxkdifuj"
+                 "kbqwtcvzgsmhpolqrnaxydifub"
+                 "kbqbtcqzgsmhposlrnaxydifuj"
+                 "kbqwmcvzgswhpoelxnaxydifuj"
+                 "kbqwtyvzgsmhkoelrnsxydifuj"
+                 "khqwtcvzgsmhqoelinaxydifuj"
+                 "koqwtcvzcsmhpoelrnaxydizuj"
+                 "kbqwtcvzlsmhpoezrnaxydmfuj"
+                 "kbqwtcvzdsmhpoelrjaxydifij"
+                 "kbqwtcvzgsmhpoelrncxyjifuk"
+                 "kbtwtcvzgsmhpoelonaxydiwuj"
+                 "kbqwfcrzgsmhpoelrnaeydifuj"
+                 "kbqutcvkgsmhpoelrnfxydifuj"
+                 "kbqwtcvzgsmvvoelrnaxydihuj"
+                 "kbqwtcvzhymhpoelrnaxydifyb"
+                 "kbqctcvzgumhpoalrnaxydifuj"
+                 "kuqktcvzgsmhpoelrnaxydieuj"
+                 "kbqwtcvzgsmvpozlrnaxydifmj"
+                 "kbqwtcvzgsmhpojlraaxydiouj"
+                 "kbqwtcvzgmmhpoelknaxydizuj"
+                 "kbwwtcvzgsmhpoefrnaxydifij"
+                 "kbqwucvzgsmhpoelvnahydifuj"
+                 "kbqwtcvzpsmhpgelrqaxydifuj"
+                 "kblqtcvzgsmhpoeirnaxydifuj"
+                 "kbqwtcvzgsmhpovlrnabydifum"
+                 "kbqwwcvzgsmhpoelrnaoydnfuj"
+                 "kyqwdcvzgsmhpoelrnaxfdifuj"
+                 "kbqftcvzgsmxpoelknaxydifuj"
+                 "kbqwtsvzksmhpoelqnaxydifuj"
+                 "kbqwtcvzgsmhplelrnauydifux"
+                 "kbqytcvzgsmhpkelrnaxydefuj"
+                 "kbqwtcvzgsmjjoelrlaxydifuj"
+                 "kbqvtcvzgsmhpoelnnaxydafuj"
+                 "kbqwtcvzgsjhioelrnaxpdifuj"
+                 "kbqptcvpgsmhpoelrnaxydiful"
+                 "kbqwjcazgimhpoelrnaxydifuj"
+                 "kbqxtcvzgwmhpaelrnaxydifuj"
+                 "kbqwtcezgsmhqoelrnaxydifub"
+                 "kbqwtcvzgsmhooelynaxydifuf"
+                 "kbqwtwvzgsmkpoelrnaxrdifuj"
+                 "nbqwtcvugsmhpoelrnzxydifuj"
+                 "kbvwqcvzgsmhpoelsnaxydifuj"
+                 "kbqwtcyzjsmhpoelrnaxymifuj"
+                 "kbqwtcvzgsmhpoclrnaxykzfuj"
+                 "kbbwtcvzgsmhyodlrnaxydifuj"
+                 "kbwwtcvzgsmytoelrnaxydifuj"
+                 "kbmwtcczgpmhpoelrnaxydifuj"
+                 "ubqwtcvzgsmmpoblrnaxydifuj"
+                 "kbqwtcvzgrmhpoelrnaxnrifuj"
+                 "kbqwhcvzgsmhpoelynaaydifuj"
+                 "kbqwtcvzgsmtpoelrcpxydifuj"
+                 "kdqwtchzgsmhpoelrmaxydifuj"
+                 "qbqrncvzgsmhpoelrnaxydifuj"
+                 "kbqwtcvzghshpoelrnaxodifuj"
+                 "kbqwhcvzgsmhpoelknaxydiwuj"
+                 "ebqwtcvzgsmhpoelrotxydifuj"
+                 "kbqwacvzusmhpoelryaxydifuj"
+                 "kbqwtcvggsmhpoelrnaxygifyj"
+                 "kbqwtcvzgsmhpoelrnaxycwfuo"
+                 "kzqwzcvzgsmhpoelrxaxydifuj"
+                 "khqwtcvzgsmhpoelrnaxldifyj"
+                 "kbqwtbtzgsmhpoelrnaxydifud"
+                 "gbqwtcvzgqmhpoelrnaxydifrj"
+                 "kbqdtqvzgwmhpoelrnaxydifuj"
+                 "kbqwscvzgsmhpoelrpaxypifuj"
+                 "kmqwtcdzgsmhpoelenaxydifuj"
+                 "klqwtcvvgsmhpoelrfaxydifuj"
+                 "kbuwtcvzgsmhpoelrtaxyuifuj"
+                 "kbqwtcvrgomhpoelrnaxydijuj"
+                 "kbqwtgvzgsmhzoelrnpxydifuj"
+                 "kbqltcvzgsmhooeljnaxydifuj"
+                 "kbqwtcvzgbmxpoelrnaxydivuj"
+                 "kbqdtcmzgsmhpoelrnaxydmfuj"
+                 "kbqwtcazgsmhpoplrnacydifuj"
+                 "kbqztcvegsmhpoelrnvxydifuj"
+                 "kbqwtcvzgsmhpoecrnaxydzfsj"
+                 "kbqwtcvzgsmepoelrnaqydifuf"
+                 "kbqwtcqzgsmhpoelrnoxydivuj"
+                 "kbqwtcvzgsmhpoeylnaxydhfuj"
+                 "kbqwtcvfgsmhpoelrnaxgdifyj"
+                 "kbqwtcvzgsmhnbelrnaxyfifuj"
+                 "kbqwtcvzgsmhpoelrnaxbdffmj"
+                 "kwqwtcvogtmhpoelrnaxydifuj"
+                 "kdqwtcvzggyhpoelrnaxydifuj"
+                 "kbqwtuvzgtmhpoelrnaxydifxj"
+                 "kbqctdvzcsmhpoelrnaxydifuj"
+                 "kbqwtcvzgsmhpoblrniyydifuj"
+                 "kbqwucvzzsmhpoelrnvxydifuj"
+                 "kbqwtcvzgslzpoelrnaxydiruj"
+                 "kbqwtdmzgsmhpwelrnaxydifuj"
+                 "kbqwtcvzgsmhpoilrnaxqiifuj"
+                 "kbqwtcvzgsmhpgelrnaxydisnj"
+                 "kbdwtqvzgsmhpoelrnaxydivuj"
+                 "kbqvtdvzgsmhpoelrjaxydifuj"
+                 "kfqwtcvzgsmhpoeurnyxydifuj"
+                 "kbqwtcvzgsmhpoglrnaxqkifuj"
+                 "kbqwtcvrgsmhpoelrnajydifnj"
+                 "xbqwpcvzgjmhpoelrnaxydifuj"
+                 "kbqwtcvzgsmhpoelrdaxvdihuj"
+                 "kbuwtcvzssmhpoklrnaxydifuj"
+                 "kbqwtcvzgqmhpoelrnzxydifbj"
+                 "kbqwtcvzgsmhsoeoknaxydifuj"
+                 "kfqltcvzgsmhpoelrnaxydifnj"
+                 "qbqwtsvzgsmhpoelrnaxodifuj"
+                 "kbqwwevzgsmypoelrnaxydifuj"
+                 "kbqwtcuzgimhpoelrnaxydffuj"
+                 "kxqwlcvzgsmhpoelrnaxyrifuj"
+                 "nbqwtcvzgsmhpoelryaxyiifuj"
+                 "kbqwtcvzgsmhhoxlreaxydifuj"
+                 "mbqwtcvzfsmxpoelrnaxydifuj"
+                 "kbqwttvzgsmhpoeqrnaxidifuj"
+                 "kbqwtcvzgamhpielrnaxyiifuj"
+                 "rfqwtcvzgsmhpoelrnaxydifun"
+                 "kbpwtqvzgsmbpoelrnaxydifuj"
+                 "kbqwtcvzgsmhpoqlroaxydifua"
+                 "hbqwtcvzksmhpoelrnaxydbfuj"
+                 "kaqutcvzgsmhpoelrnaxydiiuj"
+                 "kbqctcvzgsnhpoelrcaxydifuj"
+                 "kbqwtnvzgsmhpoelrnaxydqfoj"
+                 "kbqwtcvzhsmhpoelrnaxydifyb"
+                 "ubqwtcvcgsmhooelrnaxydifuj"
+                 "kbqwtcvrgsmhpoelrnaxtdivuj"
+                 "kbqwtcvzgsmhplelrnmxydifaj"
+                 "ebqwlcvzghmhpoelrnaxydifuj"
+                 "hbqwtcvzgsmhpoelrnaqyeifuj"
+                 "kbqstcvzgsmeprelrnaxydifuj"
+                 "kbqwtcvogsthpoelrnnxydifuj"
+                 "ybqwtcvzgdmhpoelrnaxydufuj"
+                 "kbqutcvzgsmhpoelrnaxydifgx"
+                 "kbqwtcvzgsmhpozlunadydifuj"
+                 "kkqwtcvzgsmhpuefrnaxydifuj"
+                 "kbqrtcvzgsmhpoelrnaxcdifuq"
+                 "kbqwtcvzjsmupoelrnaxydiluj"
+                 "kbqwmcvzgsuhpoelrnaxydifhj"
+                 "kbqwfcvzgsmhpoelrnaxydkzuj"
+                 "kbqatcvzgsdhpoeyrnaxydifuj"
+                 "kbtwtcvzusmhpoelrxaxydifuj"
+                 "kbqwtcwzgsmhpoelrnaxysofuj"
+                 "kbqqtcvmgsmhpoevrnaxydifuj"
+                 "kbqwjcvzgsmhpoelrnaxydhuuj"
+                 "mbdwtcvzgsmhpoelqnaxydifuj"
+                 "kbqwtcvlgsmhpoelrdaxydifaj"
+                 "kbqwtcvzgsmmpoelrlaxydnfuj"
+                 "kbqwtchfggmhpoelrnaxydifuj"
+                 "kbqqtcvzgsyhpoelrnaxyoifuj"
+                 "knqwtcvzqsmupoelrnaxydifuj"
+                 "kdqdtcvzgsmhpoelrnaxydmfuj"
+                 "kbqwtcvzgsmhptelrnawyhifuj"
+                 "kbqwtcvzgrmhpoeqrnaxydifuw"
+                 "kbnxtcvzgsmhpoelrnauydifuj"
+                 "kbqwacvsgsmhpoelrnaxydifgj"
+                 "kbqwtcvzgsmhpperrnaxydifuc"
+                 "gbqwtcvzgsqhxoelrnaxydifuj"
+                 "kbqwtcvzgsmhpoeljgaxydifwj"
+                 "kbqktcvzgsmhpotlrnatydifuj"
+                 "bbqwtcvzgsmhpoilrnaxydjfuj"
+                 "kbqwecvdgsmhpoelrnaxypifuj"
+                 "keqwtcvzgemhpotlrnaxydifuj"
+                 "kbqptcvzgsmvpoelrnaxydixuj"
+                 "kbqwbctzgsmhpoelrnaxydifup"
+                 "kbqwtcvzgszhpbelrnzxydifuj"
+                 "mbqwtcvtgsmhpoeyrnaxydifuj"
+                 "kbqwtcvzgsmhqcelrhaxydifuj"
+                 "kbqotcvzgsmhooelrnazydifuj"
+                 "kbqwtcvzgsmhpoelmpaxyiifuj"
+                 "kbqwtcvwgsmypoclrnaxydifuj"
+                 "kbqwtcvsgskhpoelrnaxykifuj"
+                 "kbqwtcvzgszvpoelrnwxydifuj"
+                 "kbqwtcvzgsmhpoejonaxydrfuj"
+                 "kbqwtcvzgsmhkoelrnazyqifuj"
+                 "kbzwtzvzgsmhptelrnaxydifuj"
+                 "kbqwtcdzgsmhptelrnaxydiduj"
+                 "kbqwtcvzgamhpoelrnakyzifuj"
+                 "kbqwtcvzgsmhpoeonnaxydifxj"
+                 "kbqwtcvzgsmhpoeranaxydifej"
+                 "kbqwscvzgsmhpoelunaxydimuj"
+                 "cbqwtcvzgsmhpoelrdaxydefuj"
+                 "vbqwtcjzgsmhpoelrnaxydifua"
+                 "kmqwtcvzksmhpoeljnaxydifuj"
+                 "kbqwtcvzgsmppojlrnasydifuj"
+                 "kaqwtcvfgsmhpoelrnaxydiauj"
+                 "khqwccvzgsmhpoelrnaxydifud"
+                 "vbqwtcvzrsmhpoelrhaxydifuj"
+                 "kuqwtcvzgsmhpoelgnaiydifuj"
+                 "kbqwtcvzdsmhpbelvnaxydifuj"
+                 "kbowtcvzgnmhpoelrfaxydifuj"
+                 "kbqwtcvsgsmhfoejrnaxydifuj"
+                 "kbqwtcvzgskhtoelrnxxydifuj"
+                 "kbqwtcvzgtmhpoevrnaxydivuj"
+                 "bbqptcgzgsmhpoelrnaxydifuj"
+                 "kbqwtpvzgsmnpoelhnaxydifuj"
+                 "kbqwtovzgsmmpoelrnaxydifuw"
+                 "kbqwtcvzgsihpwelrnaxydsfuj"
+                 "kbqwtcvzggmhpollrnaxydifsj"
+                 "kbqwtcjzgsmhpoelrnaxyxifub"
+                 "ebqwtcvzgsmzpoelrnaaydifuj"
+                 "kbqwtcvzusmhpoelrnqxydijuj"
+                 "obqwtcvzgsghpoelrnaxydifkj"
+                 "kbrwtcvzmdmhpoelrnaxydifuj"
+                 "kbqwtcvzxsmhpoblrnhxydifuj"
+                 "kbqwacvzgsahpoelrnaxydiguj"
+                 "kyqwtcvzgsmipoelrnlxydifuj"
+                 "kbbwtcvzgsmhboelpnaxydifuj"
+                 "kbqwtcvzgsmhpoelrnaxhdosuj"
+                 "kbqwtgvzgxmhpoelrnaxyrifuj"
+                 "pbqwtsvzgsmhpoelrnabydifuj"
+                 "kbqrtcvzgsmhpsblrnaxydifuj"
+                 "kbqwtcvzgsmhpoexrnaaycifuj"
+                 "kbqxtcvzgsjhkoelrnaxydifuj"
+                 "kbqwtcvzgsmhpxelrnaxydifby"
+                 "lbxwtcvzgsmdpoelrnaxydifuj"
+                 "kbqwtcczgsmhpoklrnzxydifuj"
+                 "zbqwtcvzgsmhpoelrbaxydifui"
+                 "krqwtcvzbsmhpoelrjaxydifuj"
+                 "kbkwtcvzgsmhpoelrnaxydiacj"
+                 "kbqwtcvzgszhpseprnaxydifuj"
+                 "kbxwtcvzxsmhpoesrnaxydifuj"
+                 "kbqwdcvzgsmhpoelrbaxygifuj"
+                 "kbqwthkzgsmhhoelrnaxydifuj"
+                 "klqwtchzgamhpoelrnaxydifuj"
+                 "obqwtcvzgsvcpoelrnaxydifuj"
+                 "kblwtcvzgsmhpoelrnanydifuw"
+                 "kbqwtrvzgsmhpoelynaxydifug"
+                 "kbqwtcvzgsmhcoelmnaxydkfuj"
+                 "kbqwtcvzgsmhpotlqoaxydifuj"
+                 "kaqatcvzgsmhpoelrnaxyiifuj"
+                 "kbqttcvwgsmhpoelrnaxydifgj"
+                 "kpqwtcvzgsmhpwelynaxydifuj"
+                 "kbqwucvzgsmhpyelrnaxyxifuj"
+                 "kbqwucvzgsmhprelrnaxyfifuj"
+                 "kbqwthvzgsmhphelrnaxylifuj"
+                 "kbqwtcvzosmhdoelrnaxwdifuj"
+                 "kbqwtxvsgsphpoelrnaxydifuj"
+                 "koqwtcvfghmhpoelrnaxydifuj"
+                 "kbtwicvzpsmhpoelrnaxydifuj"
+                 "kbawtcvzgsmhmoelrnaxyiifuj"
+                 "kbqwtcvzgslhpbelrnaxydifuk"
+                 "kbqttcvzgsmypoelrnaxydifua"
+                 "kbqwtcvrgqmhpnelrnaxydifuj"
+                 "kbqwtcvzghmhpoekpnaxydifuj"
+                 "kbqwtcvzgsmupoelrnaxidifui"
+                 "kbqwtcvzgsmhpbelrnaxrdifux"])
+
+(def day2-test-input ["abcdef"
+                      "bababc"
+                      "abbcde"
+                      "abcccd"
+                      "aabcdd"
+                      "abcdee"
+                      "ababab"])
+
+(defn into-or-inc [m c]
+  (update-in m [c] (fnil inc 0)))
+
+(defn to-map-count [s]
+  (let [arr (char-array s)]
+    (reduce into-or-inc {} arr)))
+
+(defn has-count [m c]
+  (some #(= c %) (vals m)))
+
+(defn has-two-count [m]
+  (has-count m 2))
+
+(defn has-three-count [m]
+  (has-count m 3))
+
+(defn day2-p1 [input]
+  (let [m (map to-map-count input)
+        two-counts (filter has-two-count m)
+        three-counts (filter has-three-count m)]
+    (* (count two-counts) (count three-counts))))
+
+(day2-p1 day2-input)                                        ;7134
+
+(def day2-test-input-2 ["abcde"
+                        "fghij"
+                        "klmno"
+                        "pqrst"
+                        "fguij"
+                        "axcye"
+                        "wvxyz"])
+
+(defn diff-by-one [s1 s2]
+  (loop [seq1 s1
+         seq2 s2
+         pos 0
+         diff -1]
+    (if (or (empty? seq1) (empty? seq2))
+      diff
+      (if (not= (first seq1) (first seq2))
+        (if (not= -1 diff)
+          nil
+          (recur (rest seq1) (rest seq2) (+ pos 1) pos))
+        (recur (rest seq1) (rest seq2) (+ pos 1) diff)))))
+
+(defn diff-by-ones [word words]
+  (loop [other (first words)
+         words (rest words)]
+    (let [diff (diff-by-one word other)]
+      (if (or (not (nil? diff)) (empty? words))
+        diff
+        (recur (first words) (rest words))))))
+
+(defn day2-p2 [seqs]
+    (loop [word (first seqs)
+           words (rest seqs)]
+      (let [diff (diff-by-ones word words)]
+        (if (not (nil? diff))
+          (str (subs word 0 diff) (subs word (+ 1 diff)))
+          (recur (first words) (rest words))))))
+
+(day2-p2 day2-input)                                        ;kbqwtcvzhmhpoelrnaxydifyb
