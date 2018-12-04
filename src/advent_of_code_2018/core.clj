@@ -150,3 +150,99 @@
 
 (day3-p1 day3-input)                                        ;110389
 (:id (first (day3-p2 day3-input)))                          ;552
+
+
+;;;Day 4
+
+(def day4-test-input ["[1518-11-01 00:00] Guard #10 begins shift"
+                      "[1518-11-01 00:05] falls asleep"
+                      "[1518-11-01 00:25] wakes up"
+                      "[1518-11-01 00:30] falls asleep"
+                      "[1518-11-01 00:55] wakes up"
+                      "[1518-11-03 00:05] Guard #10 begins shift"
+                      "[1518-11-02 00:40] falls asleep"
+                      "[1518-11-02 00:50] wakes up"
+                      "[1518-11-03 00:24] falls asleep"
+                      "[1518-11-01 23:58] Guard #99 begins shift"
+                      "[1518-11-04 00:02] Guard #99 begins shift"
+                      "[1518-11-03 00:29] wakes up"
+                      "[1518-11-04 00:36] falls asleep"
+                      "[1518-11-05 00:03] Guard #99 begins shift"
+                      "[1518-11-04 00:46] wakes up"
+                      "[1518-11-05 00:45] falls asleep"
+                      "[1518-11-05 00:55] wakes up"])
+
+(defn get-guard [str-input]
+  (keyword (second (re-find #"Guard #(\d+)" str-input))))
+
+(defn get-action [str-input]
+  (cond
+        (re-find #"falls asleep" str-input) :sleep
+        (re-find #"wakes up" str-input) :wake
+        (re-find #"Guard " str-input) :guard-change
+        :else :unk))
+
+(defn get-minute-seq [str1 str2]
+  (let [min-start (parse-int (second (re-find #"\:(\d+)\]" str1)))
+        min-end (parse-int (second (re-find #"\:(\d+)\]" str2)))]
+    (range min-start min-end)))
+
+(defn update-guard-sleep [sleep-act wake-act guard data]
+  (let [guard-data (guard data)
+        guard-data (if (nil? guard-data) {} guard-data)
+        min-seq (get-minute-seq sleep-act wake-act)
+        min-keys (into [] (map #(into [] [(keyword (str %))]) min-seq))
+        updated-guard (reduce (fn [a k] (update-in a k (fnil inc 0))) guard-data min-keys)]
+    (assoc data guard updated-guard)))
+
+(defn day4-to-m [input]
+  (let [sort-input (sort input)]
+    (loop [curr-action (first sort-input)
+           last-action nil
+           rest-action (rest sort-input)
+           guard nil
+           data {}]
+      (if (nil? curr-action)
+        data
+        (let [action (get-action curr-action)
+              new-action (first rest-action)
+              left (rest rest-action)]
+          (case action
+            :sleep (recur new-action curr-action left guard data)
+            :wake (recur new-action curr-action left guard (update-guard-sleep last-action curr-action guard data))
+            :guard-change (recur new-action curr-action left (get-guard curr-action) data)
+            (recur new-action curr-action left guard data)))))))
+
+(defn maxkeyval [maxkv [k v]]
+  (if (> v (first (vals maxkv))) {k v} maxkv))
+
+(defn day4-p1 [input]
+  (let [m (day4-to-m input)
+        total-sleeps (reduce-kv #(assoc %1 %2 (reduce + (vals %3))) {} m)
+        max-guard (first (keys (reduce maxkeyval {:val 0} total-sleeps)))
+        max-sleep (first (keys (reduce maxkeyval {:val 0} (max-guard m))))]
+    (* (parse-int (name max-guard)) (parse-int (name max-sleep)))))
+
+(def day4-input (read-file-lines "day4"))
+
+(day4-p1 day4-input)                                        ;19025
+
+(defn common-sleep [guard m]
+  (reduce maxkeyval {:val 0} (guard m)))
+
+(defn to-common-sleep [m]
+  (reduce (fn [acc [k v]] (assoc acc k (common-sleep k m))) {} m))
+
+(defn max-common-sleep [commons]
+  (reduce (fn [mv [k v]] (if (> (first (vals v)) (first (vals (first (vals mv))))) {k v} mv)) {:guard {:val 0}} commons))
+
+(defn day4-p2 [input]
+  (let [m (day4-to-m input)
+        commons (to-common-sleep m)
+        max-c (max-common-sleep commons)
+        guard-num (parse-int (name (first (keys max-c))))
+        sleep-num (parse-int (name (first (keys (first (vals max-c))))))]
+    (* guard-num sleep-num)))
+
+(day4-p2 day4-input)                                        ;23776
+
