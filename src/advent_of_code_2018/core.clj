@@ -246,3 +246,43 @@
 
 (day4-p2 day4-input)                                        ;23776
 
+(def day5-test-input "dabAcCaCBAcCcaDA")
+
+(def day5-input (first (read-file-lines "day5")))
+
+(defn same-but-diff-case? [c1 c2]
+  (and
+    (not (nil? c1))
+    (not (nil? c2))
+    (not= c1 c2)
+    (= (s/upper-case c1) (s/upper-case c2))))
+
+(defn remove-dissimilar-case [str-letters]
+  (let [cs (seq (char-array str-letters))
+        cleaned-cs (reduce
+                     (fn [res c]
+                       (if (same-but-diff-case? (first res) c)
+                         (rest res)
+                         (conj res c))) (conj '() (first cs)) (rest cs))
+        cs-fixed (reverse cleaned-cs)]
+    (s/join cs-fixed)))
+
+(defn day5-p1 [str-input]
+  (loop [cs str-input
+         fixed (remove-dissimilar-case str-input)]
+    (if (= cs fixed)
+      cs
+      (recur fixed (remove-dissimilar-case fixed)))))
+
+(count (day5-p1 day5-input))                                ;11590
+(def alphas (map char (range (int \a) (inc (int \z)))))
+
+(defn remove-char [str-input c]
+  (let [pattern (re-pattern (#(str "(?i)" c)))]
+    (s/replace str-input pattern "")))
+
+(defn day5-p2 [str-input]
+  (let [sizes (map #(count (day5-p1 (remove-char str-input %))) alphas)]
+    (apply min sizes)))
+
+(day5-p2 day5-input)                                        ;4504
