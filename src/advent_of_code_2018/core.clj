@@ -2,7 +2,8 @@
   (:require [clojure.string :as s]
             [clojure.math.combinatorics :as combo]
             [clojure.set :as set]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.math.numeric-tower :as math]))
 
 ;;; https://adventofcode.com/2018
 
@@ -21,7 +22,7 @@
 (def day1-input (with-open [rdr (io/reader "inputs/day1.txt")]
                   (into [] (doall (map parse-int (line-seq rdr))))))
 
-(day1-p1 day1-input)                                        ;416
+;(day1-p1 day1-input)                                        ;416
 
 (defn day1-p2 [freq]
   (let [size (count freq)]
@@ -30,7 +31,7 @@
         cur
         (recur (mod (+ pos 1) size) (conj seen cur) (+ cur (get freq pos)))))))
 
-(day1-p2 day1-input)                                        ;56752
+;(day1-p2 day1-input)                                        ;56752
 
 ;Day 2
 ;;https://adventofcode.com/2018/day/2
@@ -67,7 +68,7 @@
         three-counts (filter has-three-count m)]
     (* (count two-counts) (count three-counts))))
 
-(day2-p1 day2-input)                                        ;7134
+;(day2-p1 day2-input)                                        ;7134
 
 (def day2-test-input-2 ["abcde"
                         "fghij"
@@ -106,7 +107,7 @@
           (str (subs word 0 diff) (subs word (+ 1 diff)))
           (recur (first words) (rest words))))))
 
-(day2-p2 day2-input)                                        ;kbqwtcvzhmhpoelrnaxydifyb
+;(day2-p2 day2-input)                                        ;kbqwtcvzhmhpoelrnaxydifyb
 
 ;;;day3 https://adventofcode.com/2018/day/3
 
@@ -148,8 +149,8 @@
     (filter #(empty? (set/intersection (:claimed %) pts)) ms)))
 
 
-(day3-p1 day3-input)                                        ;110389
-(:id (first (day3-p2 day3-input)))                          ;552
+;(day3-p1 day3-input)                                        ;110389
+;(:id (first (day3-p2 day3-input)))                          ;552
 
 
 ;;;Day 4
@@ -225,7 +226,7 @@
 
 (def day4-input (read-file-lines "day4"))
 
-(day4-p1 day4-input)                                        ;19025
+;(day4-p1 day4-input)                                        ;19025
 
 (defn common-sleep [guard m]
   (reduce maxkeyval {:val 0} (guard m)))
@@ -244,7 +245,7 @@
         sleep-num (parse-int (name (first (keys (first (vals max-c))))))]
     (* guard-num sleep-num)))
 
-(day4-p2 day4-input)                                        ;23776
+;(day4-p2 day4-input)                                        ;23776
 
 (def day5-test-input "dabAcCaCBAcCcaDA")
 
@@ -274,7 +275,7 @@
       cs
       (recur fixed (remove-dissimilar-case fixed)))))
 
-(count (day5-p1 day5-input))                                ;11590
+;(count (day5-p1 day5-input))                                ;11590
 (def alphas (map char (range (int \a) (inc (int \z)))))
 
 (defn remove-char [str-input c]
@@ -285,4 +286,129 @@
   (let [sizes (map #(count (day5-p1 (remove-char str-input %))) alphas)]
     (apply min sizes)))
 
-(day5-p2 day5-input)                                        ;4504
+;(day5-p2 day5-input)                                        ;4504
+
+;;day6
+
+(def day6-test-input [[1, 1]
+                      [1, 6]
+                      [8, 3]
+                      [3, 4]
+                      [5, 5]
+                      [8, 9]])
+
+(def day6-input [[249, 60]
+                 [150, 332]
+                 [174, 83]
+                 [287, 329]
+                 [102, 338]
+                 [111, 201]
+                 [259, 96]
+                 [277, 161]
+                 [143, 288]
+                 [202, 311]
+                 [335, 55]
+                 [239, 148]
+                 [137, 224]
+                 [48, 214]
+                 [186, 87]
+                 [282, 334]
+                 [147, 157]
+                 [246, 191]
+                 [241, 181]
+                 [286, 129]
+                 [270, 287]
+                 [79, 119]
+                 [189, 263]
+                 [324, 280]
+                 [316, 279]
+                 [221, 236]
+                 [327, 174]
+                 [141, 82]
+                 [238, 317]
+                 [64, 264]
+                 [226, 151]
+                 [110, 110]
+                 [336, 194]
+                 [235, 333]
+                 [237, 55]
+                 [230, 137]
+                 [267, 44]
+                 [258, 134]
+                 [223, 42]
+                 [202, 76]
+                 [159, 135]
+                 [229, 238]
+                 [197, 83]
+                 [173, 286]
+                 [123, 90]
+                 [314, 165]
+                 [140, 338]
+                 [347, 60]
+                 [108, 76]
+                 [268, 329]])
+
+(defn manhatten-distance [p1 p2]
+  (let [diffs (map (comp math/abs -) p1 p2)]
+    (reduce + diffs)))
+
+(defn build-points [centroids]
+  (let [maxy (inc (apply max (map last centroids)))
+        maxx (inc (apply max (map first centroids)))
+        pts (combo/cartesian-product (range 0 (inc maxx)) (range 0 (inc maxy)))]
+    pts))
+
+(defn centroid-dists [centroids pt]
+  (loop [centroid (first centroids)
+         centroids (rest centroids)
+         distances []]
+    (if (nil? centroid)
+      distances
+      (let [dist (manhatten-distance centroid pt)]
+        (recur (first centroids) (rest centroids) (conj distances dist))))))
+
+(defn cluster [centroids pts]
+  (loop [clusters (into [] (map #(empty [%]) centroids))
+         pt (first pts)
+         pts (rest pts)]
+    (if (nil? pt)
+      clusters
+      (let [c-dists (centroid-dists centroids pt)
+            c-centroid (first (apply min-key second (map-indexed vector c-dists)))
+            c-dist (apply min c-dists)
+            shared? (> (get (frequencies c-dists) c-dist) 1)
+            n-cluster (conj (nth clusters c-centroid) pt)
+            new-clusters (if shared? clusters (assoc clusters c-centroid n-cluster))]
+        (recur new-clusters (first pts) (rest pts))))))
+
+(defn day6-p1 [centroids]
+  (let [pts (build-points centroids)
+        clusters (cluster centroids pts)
+        max-y (inc (apply max (map last centroids)))
+        max-x (inc (apply max (map first centroids)))
+        edge? #(or (= max-y (last %)) (= 0 (first %)) (= 0 (last %)) (= max-x (first %)))]
+    (loop [c (first clusters)
+           clusters (rest clusters)
+           max-pts 0]
+      (if (nil? c)
+        max-pts
+        (let [size (if (some edge? c) -1 (count c))]
+          (recur (first clusters) (rest clusters) (max size max-pts)))))))
+
+;(day6-p1 day6-input)                                        ;3420
+
+(defn in-region? [centroids pt sum-dist]
+  (let [c-dists (centroid-dists centroids pt)]
+    (< (reduce + c-dists) sum-dist)))
+
+(defn region-seed [centroids pts sum-dist]
+  (first (filter #(in-region? centroids % sum-dist) pts)))
+
+(defn day6-p2 [centroids max-sum-dist]
+  (let [pts (build-points centroids)]
+    (count (filter #(in-region? centroids % max-sum-dist) pts))))
+
+;; Very slow, might be better to simply get the FIRST point in the region
+;; and then build out from there using it as a "region seed"
+;; However, this method goes through every point instead
+;(day6-p2 day6-input 10000)                                  ;46667
