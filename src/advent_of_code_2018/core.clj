@@ -412,3 +412,152 @@
 ;; and then build out from there using it as a "region seed"
 ;; However, this method goes through every point instead
 ;(day6-p2 day6-input 10000)                                  ;46667
+
+;;;Day 7
+
+(def day7-test-input ["Step C must be finished before step A can begin."
+                      "Step C must be finished before step F can begin."
+                      "Step A must be finished before step D can begin."
+                      "Step A must be finished before step B can begin."
+                      "Step B must be finished before step E can begin."
+                      "Step D must be finished before step E can begin."
+                      "Step F must be finished before step E can begin."])
+
+(def day7-input (read-file-lines "day7"))
+
+(defn into-map [m str-input]
+  (let [f-str (second (re-find #"Step (.)" str-input))
+        s-str (second (re-find #"step (.)" str-input))
+        v (keyword f-str)
+        k (keyword s-str)]
+    (update-in m [k] (fnil #(into [] (sort (conj % v))) []))))
+
+(defn r-into-map [m str-input]
+  (let [f-str (second (re-find #"Step (.)" str-input))
+        s-str (second (re-find #"step (.)" str-input))
+        k (keyword f-str)
+        v (keyword s-str)]
+    (update-in m [k] (fnil #(into [] (sort (conj % v))) []))))
+
+(defn input-to-dag [input]
+  (reduce into-map {} input))
+
+(defn r-input-to-dag [input]
+  (reduce r-into-map {} input))
+
+(defn update-reqs [reqs k]
+  (into [] (filter #(not= % k) reqs)))
+
+(defn update-all-reqs [m ks req]
+  (loop [k (first ks)
+         ks (rest ks)
+         m m]
+    (if (nil? k)
+      m
+      (recur (first ks) (rest ks) (update-in m [k] #(update-reqs % req))))))
+
+(defn not-quiet-bfs [dag r-dag starting-keys]
+  (loop [seen #{}
+         path '()
+         sats r-dag
+         stack (into [] starting-keys)]
+    (if (empty? stack)
+      path
+      (let [current (peek stack)
+            sub-nodes (into [] (reverse (current dag)))
+            new-sats (update-all-reqs sats sub-nodes current)
+            satisfied? (empty? (current sats))
+            not-visited? (into [] (filter #(not (contains? seen %)) sub-nodes))
+            new-path (if (contains? seen current) path (conj path current))
+            new-queue (pop stack)
+            potential-new-queue (into [] (reverse (sort (into #{} (concat new-queue not-visited?)))))
+            new-queue (if satisfied? potential-new-queue (into [] (cons current new-queue)))
+            new-seen (into seen new-path)
+            ]
+        (recur (if satisfied? new-seen seen) (if satisfied? new-path path) (if satisfied? new-sats sats) new-queue)))))
+
+
+(not-quiet-bfs (r-input-to-dag day7-test-input) (input-to-dag day7-test-input) [:K :C])
+
+(defn day7-p1 [input]
+  (let [r-dag (r-input-to-dag input)
+        dag (input-to-dag input)
+        sinks (reverse (sort (set/difference (into #{} (keys r-dag)) (into #{} (keys dag)))))
+        re-keys (not-quiet-bfs r-dag dag sinks)]
+    (s/join (map name (reverse re-keys)))))
+
+;(day7-p1 day7-input)                                        ;ABGKCMVWYDEHFOPQUILSTNZRJX
+
+(defn tick-workers [workers]
+  (zipmap (keys workers) (map (fn [[f s]] [f (dec s)]) (vals workers))))
+
+(defn any-assignable? [workers]
+  (some #(<= % 0) (map second (vals workers))))
+
+(defn all-assignable? [workers]
+  (every? #(<= % 0) (map second (vals workers))))
+
+(defn get-assignable [workers]
+  (first (first (filter (fn [[k v]] (<= (second v) 0)) workers))))
+
+(defn get-completed [workers]
+  (filter #(not (nil? %)) (map (fn [[k v]] (first v)) (filter (fn [[k v]] (<= (second v) 0)) workers))))
+
+(defn assign-if-possible [workers tasks]
+  (loop [workers workers
+         task (first tasks)
+         tasks (rest tasks)
+         assigned '()]
+    (if (or (not (any-assignable? workers)) (nil? task))
+      {:assigned assigned :workers workers}
+      (let [assignable (get-assignable workers)
+            task-val (+ 60 (- (int (first (char-array (name task)))) 64))
+            already-assigned? (contains? (into #{} (map first (vals workers))) task)]
+        (if already-assigned?
+          (recur workers (first tasks) (rest tasks) (conj assigned task))
+          (recur (assoc workers assignable [task task-val]) (first tasks) (rest tasks) (conj assigned task)))))))
+
+
+(defn update-alls-reqs [dag reqs ts]
+  (loop [ts ts
+         reqs reqs]
+    (if (empty? ts)
+      reqs
+      (let [t (first ts)
+            sub-nodes (t dag)]
+        (recur (rest ts) (update-all-reqs reqs sub-nodes t))))))
+
+(defn not-quiet-bfs-ticks [dag r-dag starting-keys workers]
+  (loop [seen #{}
+         sats r-dag
+         workers (:workers (assign-if-possible workers starting-keys))
+         stack (into [] starting-keys)
+         tick 0]
+    (if (and (all-assignable? workers) (empty? stack))
+      tick
+      (if (any-assignable? workers)
+        (let [completed-tasks (get-completed workers)
+              new-sats (update-alls-reqs dag sats completed-tasks)
+              assignable-tasks (sort (filter #(empty? (% new-sats)) stack))
+              assign (assign-if-possible workers assignable-tasks)
+              assigned-tasks (:assigned assign)
+              workers (:workers assign)
+              new-seen (into seen assigned-tasks)
+              adj-stack (set/difference (into #{} stack) (into #{} assigned-tasks))
+              new-stack (concat adj-stack (filter #(not (contains? seen %)) (mapcat #(% dag) assigned-tasks)))]
+          (recur new-seen new-sats (tick-workers workers) new-stack (inc tick)))
+        (recur seen sats (tick-workers workers) stack (inc tick))))))
+
+
+(assign-if-possible {:1 [nil 2] :2 [nil 0]} '(:C))
+(not-quiet-bfs-ticks (r-input-to-dag day7-test-input) (input-to-dag day7-test-input) '(:C)  { :1 [nil 0] :2 [nil 0]})
+
+(defn day7-p2 [input workers]
+  (let [r-dag (r-input-to-dag input)
+        dag (input-to-dag input)
+        sinks (reverse (sort (set/difference (into #{} (keys r-dag)) (into #{} (keys dag)))))
+        res (not-quiet-bfs-ticks r-dag dag sinks workers)]
+    res))
+
+;(day7-p2 day7-test-input {:1 [nil 0] :2 [nil 0]})
+;(day7-p2 day7-input {:1 [nil 0] :2 [nil 0] :3 [nil 0] :4 [nil 0] :5 [nil 0]}) ;898
