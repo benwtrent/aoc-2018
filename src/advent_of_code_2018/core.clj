@@ -561,3 +561,132 @@
 
 ;(day7-p2 day7-test-input {:1 [nil 0] :2 [nil 0]})
 ;(day7-p2 day7-input {:1 [nil 0] :2 [nil 0] :3 [nil 0] :4 [nil 0] :5 [nil 0]}) ;898
+
+;;;;Day 8
+
+(defn create-id-generator
+  "Returns an impure function to generate ids"
+  []
+  (let [next-id (atom 0)]
+    (fn []
+      (swap! next-id inc)
+      @next-id)))
+
+;; here we create our "object"
+(def generate-id! (create-id-generator))
+
+(def day8-test-input [2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2])
+
+(def day8-input (map parse-int (s/split (first (read-file-lines "day8")) #" ")))
+
+(defn nth-or-nil [n coll]
+  (if (<= 0 n (dec (count coll))) (nth coll n) nil))
+
+;probably should use an ordered set library here
+(defn conj-if-uniq [xs x]
+  (if (some (fn [c] (= c x)) xs) xs (conj xs x)))
+
+(defn generate-node [parent-id nums]
+  (let [num-children (first nums)
+        num-metadata (second nums)
+        nums (drop 2 nums)
+        meta-data (if (< 0 num-children) [] (into [] (take num-metadata nums)))
+        nums (drop (count meta-data) nums)]
+    {:node {:id           (keyword (str (generate-id!)))
+            :parent       parent-id
+            :num-children num-children
+            :children     []
+            :num-metadata num-metadata
+            :value        (reduce + meta-data)
+            :meta-data    meta-data}
+     :nums nums}))
+
+(defn update-parent [node node-map]
+  (let [parent-id (:parent node)
+        id (:id node)]
+    (if (nil? parent-id)
+      node-map
+      (update-in node-map [parent-id] #(update-in % [:children] (fn [cs] (conj-if-uniq cs id)))))))
+
+(defn children-completed? [node]
+  (= (:num-children node) (count (:children node))))
+
+(defn node-completed? [node]
+  (and (children-completed? node)
+       (= (:num-metadata node) (count (:meta-data node)))))
+
+(defn calc-value [metadata children node-map]
+  (if (or (empty? children) (empty? metadata))
+    0
+    (let [child-keys (filter (comp not nil?) (map #(nth-or-nil (dec %) children) metadata))
+          child-values (map #(:value (% node-map)) child-keys)]
+      (reduce + child-values))))
+
+(defn update-metadata [node node-map nums]
+  (let [shoud-update? (and (= (count (:children node)) (:num-children node)) (not (node-completed? node)))
+        metadata (take (:num-metadata node) nums)
+        new-nums (drop (:num-metadata node) nums)
+        new-node (assoc node :meta-data metadata :value (calc-value metadata (:children node) node-map))
+        new-node-map (assoc node-map (:id node) new-node)]
+    {:nums (if shoud-update? new-nums nums) :nodes (if shoud-update? new-node-map node-map)}))
+
+
+(defn push-generations [parent nums node-stack nodes]
+  (if (children-completed? parent)
+    {:stack node-stack :nodes nodes :nums nums}
+    (loop [parent-id (:id parent)
+         nums nums
+         node-stack node-stack
+         nodes nodes]
+    (let [h (generate-node parent-id nums)
+          nums (:nums h)
+          node (:node h)]
+      (if (= 0 (:num-children node))
+        {:stack (conj node-stack (:id node)) :nodes (assoc nodes (:id node) node) :nums nums}
+        (recur (:id node) nums (conj node-stack (:id node)) (assoc nodes (:id node) node)))))))
+
+(defn pop-nodes [nums node-stack node-map]
+  (loop [node-stack node-stack
+         nums nums
+         node-map node-map]
+    (if (empty? node-stack)
+      node-map
+      (let [node-id (peek node-stack)
+            node (node-id node-map)
+            node-map (update-parent node node-map)
+            updated-metadata (update-metadata node node-map nums)
+            nums (:nums updated-metadata)
+            node-map (:nodes updated-metadata)
+            generations (push-generations node nums node-stack node-map)
+            new-node-map (:nodes generations)
+            new-nums (:nums generations)
+            new-stack (if (children-completed? node) (pop node-stack) (:stack generations))]
+        (recur new-stack new-nums new-node-map)))))
+
+
+(defn build-node-map [input]
+  (let [generate (generate-node nil input)
+        nums (:nums generate)
+        root (:node generate)
+        node-map {(:id root) root}
+        stack (conj '() (:id root))
+        gen1 (push-generations root nums stack node-map)
+        result-map (pop-nodes (:nums gen1) (:stack gen1) (:nodes gen1))]
+    {:root-id (:id root) :nodes result-map}))
+
+(build-node-map day8-input)
+
+(defn day8-p1 [input]
+  (let [result-map (:nodes (build-node-map input))]
+    (reduce + (mapcat #(:meta-data %) (vals result-map)))))
+
+(defn day8-p2 [input]
+  (let [result-map (build-node-map input)
+        root-id (:root-id result-map)
+        nodes (:nodes result-map)]
+    (:value (root-id nodes))))
+
+
+;(day8-p1 day8-input)                                        ;45868
+
+;(day8-p2 day8-input)                                        ;19724
