@@ -7,6 +7,9 @@
 
 ;;; https://adventofcode.com/2018
 
+(defn sum [coll]
+  (reduce + coll))
+
 (defn parse-int [s]
   (Integer/parseInt (re-find #"\A-?\d+" s)))
 
@@ -17,7 +20,7 @@
 
 ;;https://adventofcode.com/2018/day/1
 (defn day1-p1 [freq]
-  (reduce + freq))
+  (sum freq))
 
 (def day1-input (with-open [rdr (io/reader "inputs/day1.txt")]
                   (into [] (doall (map parse-int (line-seq rdr))))))
@@ -95,7 +98,7 @@
   (loop [other (first words)
          words (rest words)]
     (let [diff (diff-by-one word other)]
-      (if (or (not (nil? diff)) (empty? words))
+      (if (or (some? diff) (empty? words))
         diff
         (recur (first words) (rest words))))))
 
@@ -103,7 +106,7 @@
     (loop [word (first seqs)
            words (rest seqs)]
       (let [diff (diff-by-ones word words)]
-        (if (not (nil? diff))
+        (if (some? diff)
           (str (subs word 0 diff) (subs word (+ 1 diff)))
           (recur (first words) (rest words))))))
 
@@ -219,7 +222,7 @@
 
 (defn day4-p1 [input]
   (let [m (day4-to-m input)
-        total-sleeps (reduce-kv #(assoc %1 %2 (reduce + (vals %3))) {} m)
+        total-sleeps (reduce-kv #(assoc %1 %2 (sum (vals %3))) {} m)
         max-guard (first (keys (reduce maxkeyval {:val 0} total-sleeps)))
         max-sleep (first (keys (reduce maxkeyval {:val 0} (max-guard m))))]
     (* (parse-int (name max-guard)) (parse-int (name max-sleep)))))
@@ -253,8 +256,8 @@
 
 (defn same-but-diff-case? [c1 c2]
   (and
-    (not (nil? c1))
-    (not (nil? c2))
+    (some? c1)
+    (some? c2)
     (not= c1 c2)
     (= (s/upper-case c1) (s/upper-case c2))))
 
@@ -350,7 +353,7 @@
 
 (defn manhatten-distance [p1 p2]
   (let [diffs (map (comp math/abs -) p1 p2)]
-    (reduce + diffs)))
+    (sum diffs)))
 
 (defn build-points [centroids]
   (let [maxy (inc (apply max (map last centroids)))
@@ -399,7 +402,7 @@
 
 (defn in-region? [centroids pt sum-dist]
   (let [c-dists (centroid-dists centroids pt)]
-    (< (reduce + c-dists) sum-dist)))
+    (< (sum c-dists) sum-dist)))
 
 (defn region-seed [centroids pts sum-dist]
   (first (filter #(in-region? centroids % sum-dist) pts)))
@@ -501,7 +504,7 @@
   (first (first (filter (fn [[k v]] (<= (second v) 0)) workers))))
 
 (defn get-completed [workers]
-  (filter #(not (nil? %)) (map (fn [[k v]] (first v)) (filter (fn [[k v]] (<= (second v) 0)) workers))))
+  (filter some? (map (fn [[k v]] (first v)) (filter (fn [[k v]] (<= (second v) 0)) workers))))
 
 (defn assign-if-possible [workers tasks]
   (loop [workers workers
@@ -597,7 +600,7 @@
             :num-children num-children
             :children     []
             :num-metadata num-metadata
-            :value        (reduce + meta-data)
+            :value        (sum meta-data)
             :meta-data    meta-data}
      :nums nums}))
 
@@ -618,9 +621,9 @@
 (defn calc-value [metadata children node-map]
   (if (or (empty? children) (empty? metadata))
     0
-    (let [child-keys (filter (comp not nil?) (map #(nth-or-nil (dec %) children) metadata))
+    (let [child-keys (filter some? (map #(nth-or-nil (dec %) children) metadata))
           child-values (map #(:value (% node-map)) child-keys)]
-      (reduce + child-values))))
+      (sum child-values))))
 
 (defn update-metadata [node node-map nums]
   (let [shoud-update? (and (= (count (:children node)) (:num-children node)) (not (node-completed? node)))
@@ -678,7 +681,7 @@
 
 (defn day8-p1 [input]
   (let [result-map (:nodes (build-node-map input))]
-    (reduce + (mapcat #(:meta-data %) (vals result-map)))))
+    (sum (mapcat #(:meta-data %) (vals result-map)))))
 
 (defn day8-p2 [input]
   (let [result-map (build-node-map input)
