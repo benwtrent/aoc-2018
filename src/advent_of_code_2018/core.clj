@@ -748,3 +748,106 @@
 ;(apply max (day9-p1 448 71628))                             ;394486
 ;(apply max (day9-p1 448 (* 100 71628)))                     ;3276488008
 
+
+;;;Day 10
+
+(def day10-test-input ["position=< 9,  1> velocity=< 0,  2>"
+                       "position=< 7,  0> velocity=<-1,  0>"
+                       "position=< 3, -2> velocity=<-1,  1>"
+                       "position=< 6, 10> velocity=<-2, -1>"
+                       "position=< 2, -4> velocity=< 2,  2>"
+                       "position=<-6, 10> velocity=< 2, -2>"
+                       "position=< 1,  8> velocity=< 1, -1>"
+                       "position=< 1,  7> velocity=< 1,  0>"
+                       "position=<-3, 11> velocity=< 1, -2>"
+                       "position=< 7,  6> velocity=<-1, -1>"
+                       "position=<-2,  3> velocity=< 1,  0>"
+                       "position=<-4,  3> velocity=< 2,  0>"
+                       "position=<10, -3> velocity=<-1,  1>"
+                       "position=< 5, 11> velocity=< 1, -2>"
+                       "position=< 4,  7> velocity=< 0, -1>"
+                       "position=< 8, -2> velocity=< 0,  1>"
+                       "position=<15,  0> velocity=<-2,  0>"
+                       "position=< 1,  6> velocity=< 1,  0>"
+                       "position=< 8,  9> velocity=< 0, -1>"
+                       "position=< 3,  3> velocity=<-1,  1>"
+                       "position=< 0,  5> velocity=< 0, -1>"
+                       "position=<-2,  2> velocity=< 2,  0>"
+                       "position=< 5, -2> velocity=< 1,  2>"
+                       "position=< 1,  4> velocity=< 2,  1>"
+                       "position=<-2,  7> velocity=< 2, -2>"
+                       "position=< 3,  6> velocity=<-1, -1>"
+                       "position=< 5,  0> velocity=< 1,  0>"
+                       "position=<-6,  0> velocity=< 2,  0>"
+                       "position=< 5,  9> velocity=< 1, -2>"
+                       "position=<14,  7> velocity=<-2,  0>"
+                       "position=<-3,  6> velocity=< 2, -1>"])
+
+(def day10-input (read-file-lines "day10"))
+
+(defn input-to-pts [inputs]
+  (map (fn [input-str]
+         (let [pos-and-velocity (re-matches #"position=<(.*)> velocity=<(.*)>" input-str)
+               pos-str (second pos-and-velocity)
+               vel-str (last pos-and-velocity)
+               pos (map (comp parse-int s/trim ) (s/split pos-str #","))
+               vel (map (comp parse-int s/trim ) (s/split vel-str #","))]
+           {:pos (into [] pos) :delta (into [] vel)})) inputs))
+
+(defn move-pt [pt]
+  (let [init-pos (:pos pt)
+        delta (:delta pt)]
+    {:pos (into [] (map + init-pos delta)) :delta delta}))
+
+(sort (map :pos (input-to-pts day10-test-input)))
+
+(defn move-pts [pts]
+  (map move-pt pts))
+
+(defn print-pts [pts]
+  (let [positions (sort (map :pos pts))
+        min-x (dec (apply min (map first positions)))
+        max-x (inc (apply max (map first positions)))
+        max-y (inc (apply max (map last positions)))
+        min-y (dec (apply min (map last positions)))
+        lines (into [] (repeat (+ (math/abs max-y) (math/abs min-y)) (into [] (repeat (+ (math/abs max-x) (math/abs min-x)) "."))))]
+    (loop [pt (first positions)
+           pts (rest positions)
+           lines lines]
+      (if (nil? pt)
+        (let [joined (map str lines)]
+          (for [x joined] (println x)))
+        (let [adj-pos (map - pt [min-x min-y])
+              new-lines (update-in lines [(second adj-pos)] #(assoc % (first adj-pos) "#"))]
+          (recur (first pts) (rest pts) new-lines))))))
+
+(defn potential-word [pts]
+  (let [positions (sort (map :pos pts))]
+    (loop [cur-pos (first positions)
+           next-pos (second positions)
+           positions (rest positions)
+           line-size 0]
+      (if (= 4 line-size)                                   ;just a wild guess, assuming font size, etc. it worked :)
+        true
+        (if (nil? next-pos)
+          false
+          (if (and (= (first cur-pos) (first next-pos)) (= 1 (- (second next-pos) (second cur-pos))))
+            (recur (first positions) (second positions) (rest positions) (inc line-size))
+            (recur (first positions) (second positions) (rest positions) 0)))))))
+
+(defn day10-p1 [input]
+  (let [pts (input-to-pts input)]
+    (loop [pts pts]
+      (if (potential-word pts)
+        (print-pts pts)
+        (recur (move-pts pts))))))
+
+(defn day10-p2 [input]
+  (let [pts (input-to-pts input)]
+    (loop [pts pts wait 0]
+      (if (potential-word pts)
+        wait
+        (recur (move-pts pts) (inc wait))))))
+
+;(day10-p1 day10-input)                                      ;RRANZLAC
+;(day10-p2 day10-input)                                      ;10942
