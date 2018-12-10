@@ -103,12 +103,12 @@
         (recur (first words) (rest words))))))
 
 (defn day2-p2 [seqs]
-    (loop [word (first seqs)
-           words (rest seqs)]
-      (let [diff (diff-by-ones word words)]
-        (if (some? diff)
-          (str (subs word 0 diff) (subs word (+ 1 diff)))
-          (recur (first words) (rest words))))))
+  (loop [word (first seqs)
+         words (rest seqs)]
+    (let [diff (diff-by-ones word words)]
+      (if (some? diff)
+        (str (subs word 0 diff) (subs word (+ 1 diff)))
+        (recur (first words) (rest words))))))
 
 ;(day2-p2 day2-input)                                        ;kbqwtcvzhmhpoelrnaxydifyb
 
@@ -131,14 +131,14 @@
         x (parse-int (first dim))
         y (parse-int (last dim))
         claimed (combo/cartesian-product (range lft (+ lft x)) (range top (+ top y)))]
-    {:id id
-     :pos-lft lft
-     :pos-top top
-     :pos-rgt (dec (+ lft x))
-     :pos-bot (dec (+ top y))
-     :by-x x
-     :by-y y
-     :claimed (into #{} claimed)
+    {:id            id
+     :pos-lft       lft
+     :pos-top       top
+     :pos-rgt       (dec (+ lft x))
+     :pos-bot       (dec (+ top y))
+     :by-x          x
+     :by-y          y
+     :claimed       (into #{} claimed)
      :claimed-total (count claimed)}))
 
 
@@ -181,10 +181,10 @@
 
 (defn get-action [str-input]
   (cond
-        (re-find #"falls asleep" str-input) :sleep
-        (re-find #"wakes up" str-input) :wake
-        (re-find #"Guard " str-input) :guard-change
-        :else :unk))
+    (re-find #"falls asleep" str-input) :sleep
+    (re-find #"wakes up" str-input) :wake
+    (re-find #"Guard " str-input) :guard-change
+    :else :unk))
 
 (defn get-minute-seq [str1 str2]
   (let [min-start (parse-int (second (re-find #"\:(\d+)\]" str1)))
@@ -553,7 +553,7 @@
 
 
 (assign-if-possible {:1 [nil 2] :2 [nil 0]} '(:C))
-(not-quiet-bfs-ticks (r-input-to-dag day7-test-input) (input-to-dag day7-test-input) '(:C)  { :1 [nil 0] :2 [nil 0]})
+(not-quiet-bfs-ticks (r-input-to-dag day7-test-input) (input-to-dag day7-test-input) '(:C) {:1 [nil 0] :2 [nil 0]})
 
 (defn day7-p2 [input workers]
   (let [r-dag (r-input-to-dag input)
@@ -638,15 +638,15 @@
   (if (children-completed? parent)
     {:stack node-stack :nodes nodes :nums nums}
     (loop [parent-id (:id parent)
-         nums nums
-         node-stack node-stack
-         nodes nodes]
-    (let [h (generate-node parent-id nums)
-          nums (:nums h)
-          node (:node h)]
-      (if (= 0 (:num-children node))
-        {:stack (conj node-stack (:id node)) :nodes (assoc nodes (:id node) node) :nums nums}
-        (recur (:id node) nums (conj node-stack (:id node)) (assoc nodes (:id node) node)))))))
+           nums nums
+           node-stack node-stack
+           nodes nodes]
+      (let [h (generate-node parent-id nums)
+            nums (:nums h)
+            node (:node h)]
+        (if (= 0 (:num-children node))
+          {:stack (conj node-stack (:id node)) :nodes (assoc nodes (:id node) node) :nums nums}
+          (recur (:id node) nums (conj node-stack (:id node)) (assoc nodes (:id node) node)))))))
 
 (defn pop-nodes [nums node-stack node-map]
   (loop [node-stack node-stack
@@ -693,3 +693,58 @@
 ;(day8-p1 day8-input)                                        ;45868
 
 ;(day8-p2 day8-input)                                        ;19724
+
+;;; day 9
+;;; This could probably be done with just an array but I started with a map
+;;; So just kept it that way. The memory overhead of just keeping the marbles that we
+;;; are supposed to remove would be probably less than the overhead of using a map
+;;; vs a vector
+
+
+(defn next-marble [m pos]
+  (get m (:next pos)))
+
+(defn prev-marble [m pos]
+  (get m (:prev pos)))
+
+(defn walk-back [pos m times]
+  (loop [t times
+         pos pos]
+    (if (<= t 0)
+      pos
+      (recur (dec t) (prev-marble m pos)))))
+
+(defn place-marble [current-position marble marbles]
+  (if (= 0 (mod marble 23))
+    (let [score-init marble
+          marble-to-take (walk-back current-position marbles 7)
+          fixed-next (next-marble marbles marble-to-take)
+          fixed-prev (prev-marble marbles marble-to-take)
+          fixed-next (assoc fixed-next :prev (:val fixed-prev))
+          fixed-prev (assoc fixed-prev :next (:val fixed-next))
+          new-marbles (assoc (dissoc marbles (:val marble-to-take)) (:val fixed-prev) fixed-prev (:val fixed-next) fixed-next)]
+      {:pos fixed-next :score (+ score-init (:val marble-to-take)) :marbles new-marbles})
+    (let [new-prev (next-marble marbles current-position)
+          new-next (next-marble marbles (next-marble marbles current-position))
+          new-marble {:val marble :prev (:val new-prev) :next (:val new-next) }
+          new-prev (assoc new-prev :next (:val new-marble))
+          new-next (assoc new-next :prev (:val new-marble))
+          new-marbles (assoc marbles marble new-marble (:val new-prev) new-prev (:val new-next) new-next)]
+      {:pos new-marble :score 0 :marbles new-marbles})))
+
+(defn day9-p1 [num-players num-marbles]
+  (loop [marbles {0 {:val 0 :prev 1 :next 2} 2 {:val 2 :prev 0 :next 1} 1 {:val 1 :prev 2 :next 0}}
+         curr-player 2                                      ;player numbers start at 0
+         scores (into [] (replicate num-players 0))
+         marble 3
+         pos (get marbles 2)]
+    (if (> marble num-marbles)
+      scores
+      (let [placed (place-marble pos marble marbles)
+            score (:score placed)
+            new-scores (update-in scores [curr-player] #(+ score %))]
+        (recur (:marbles placed) (mod (inc curr-player) num-players) new-scores (inc marble) (:pos placed))))))
+
+;(apply max (day9-p1 448 71628))                             ;394486
+;(apply max (day9-p1 448 (* 100 71628)))                     ;3276488008
+
