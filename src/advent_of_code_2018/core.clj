@@ -851,3 +851,80 @@
 
 ;(day10-p1 day10-input)                                      ;RRANZLAC
 ;(day10-p2 day10-input)                                      ;10942
+
+;;; day 11
+
+(def day11-input 3628)
+
+(def day11-test-input 1)
+
+(defn power-from-coordinate [coord grid-serial-num]
+  (let [rack-id (+ 10 (first coord))
+        p-level (* rack-id (second coord))
+        p-level (+ p-level grid-serial-num)
+        p-level (* rack-id p-level)
+        p-level (if (or (> 100 (mod p-level 1000)) (> 100 p-level)) 0 (parse-int (str (first (str (mod p-level 1000))))))]
+    (- p-level 5)))
+
+(defn n-by-n-from [x y n]
+  (combo/cartesian-product (range x (+ n x)) (range y (+ n y))))
+
+(def power-memo (memoize power-from-coordinate))
+
+;;;See https://en.wikipedia.org/wiki/Summed-area_table
+(def summed-area-table (memoize (fn [coord grid-serial-num]
+                                  (if (some #(= 0 %) coord)
+                                    0
+                                    (let [pts (map #(map + %1 %2) [[0 -1] [-1 0] [-1 -1]] (repeat 3 coord))
+                                          sat-vals (map #(summed-area-table % grid-serial-num) pts)]
+                                      (sum [(power-memo coord grid-serial-num)
+                                            (first sat-vals)
+                                            (second sat-vals)
+                                            (- (last sat-vals))]))))))
+
+(defn powers [coord max-coord grid-serial-num]
+  (let [grid-sizes (range 1 (+ 1 (- max-coord (apply max coord))))
+        coord-rep (repeat 4 coord)
+        corners (map (fn [g] (into [] (map #(map + %1 %2) [[0 0] [0 g] [g 0] [g g]] coord-rep))) grid-sizes)]
+    (map  (fn [[a b c d]]
+            (sum [(summed-area-table a grid-serial-num)
+                  (summed-area-table d grid-serial-num)
+                  (- (summed-area-table b grid-serial-num))
+                  (- (summed-area-table c grid-serial-num))]))
+          corners)))
+
+(defn coordinates-and-power [max-coord grid-serial-num]
+  (let [coordinates (n-by-n-from 1 1 (- max-coord 2))]
+    (map (fn [coord]
+           (let [corners (map #(map + %1 %2) [[0 0] [0 3] [3 0] [3 3]] (repeat 4 coord))
+                 power (sum [(summed-area-table (first corners) grid-serial-num)
+                             (summed-area-table (last corners) grid-serial-num)
+                             (- (summed-area-table (second corners) grid-serial-num))
+                             (- (summed-area-table (second (rest corners)) grid-serial-num))])]
+             {:coord (into [] (map + [1 1] coord))          ;summed-area-table gives one coordinate down due to impl
+              :power power})) coordinates)))
+
+(defn coordinates-and-all-powers [max-coord grid-serial-num]
+  (let [coordinates (n-by-n-from 1 1 (dec max-coord))]
+    (map (fn [coord]
+           (let [coord-powers (powers coord max-coord grid-serial-num)]
+             {:coord (map + [1 1] coord) ;summed-area-table gives one coordinate down due to impl
+              :powers (into [] coord-powers)
+              :max-power (apply max coord-powers)})) coordinates)))
+
+(defn day11-p1 [size grid-serial-num]
+  (let [powers (coordinates-and-power size grid-serial-num)
+        maximum (apply max-key :power powers)]
+    (:coord maximum)))
+
+;(day11-p1 300 3628)                                         ;[216 12]
+
+
+(defn day11-p2 [size grid-serial-num]
+  (let [powers (coordinates-and-all-powers size grid-serial-num)
+        max-entry (apply max-key :max-power powers)
+        max-power-size (inc (.indexOf (:powers max-entry) (:max-power max-entry)))]
+    {:coord (:coord max-entry) :max-power (:max-power max-entry) :size max-power-size})) ;
+
+;(day11-p2 300 3628)                                         ;{:coord (236 175), :max-power 88, :size 11}
+
