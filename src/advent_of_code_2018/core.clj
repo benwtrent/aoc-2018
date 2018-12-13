@@ -928,3 +928,103 @@
 
 ;(day11-p2 300 3628)                                         ;{:coord (236 175), :max-power 88, :size 11}
 
+;;;day12
+
+(def day12-test-input {:init-pots "#..#.#..##......###...###"
+                       :mappings #{"...##"
+                                   "..#.."
+                                   ".#..."
+                                   ".#.#."
+                                   ".#.##"
+                                   ".##.."
+                                   ".####"
+                                   "#.#.#"
+                                   "#.###"
+                                   "##.#."
+                                   "##.##"
+                                   "###.."
+                                   "###.#"
+                                   "####."}})
+(def day12-input {:init-pots "#..#####.#.#.##....####..##.#.#.##.##.#####..####.#.##.....#..#.#.#...###..#..###.##.#..##.#.#.....#"
+                  :mappings #{".#.##"
+                              ".###."
+                              "#.##."
+                              "..##."
+                              ".#..#"
+                              ".####"
+                              "..#.."
+                              "####."
+                              "#..##"
+                              "...#."
+                              "###.."
+                              "..#.#"
+                              "##..."
+                              ".#.#."
+                              "#.###"}})
+
+(defn pot-pattern-suffix [pot-pos generation]
+  (let [pot-pattern (if (>= (+ 2 pot-pos) (count generation))
+                      (subvec generation (- pot-pos 2))
+                      (subvec generation (- pot-pos 2) (+ pot-pos 3)))
+        buffer (apply str (repeat (- 5 (count pot-pattern)) "."))]
+    (apply str (conj pot-pattern buffer))))
+
+(defn pot-pattern-prefix [pot-pos generation]
+  (let [pot-pattern (subvec generation pot-pos (+ pot-pos 3))
+        buffer (repeat (- 4 (+ 2 pot-pos)) ".")]
+    (str (concat buffer pot-pattern))))
+
+(defn pot-pattern [pot-num generation zeroth]
+  (let [pot-pos (+ zeroth pot-num)]
+    (if (> 2 pot-pos)
+      (pot-pattern-prefix pot-pos generation)
+      (pot-pattern-suffix pot-pos generation))))
+
+(defn buffer-generation [generation zeroth]
+  (let [prepend (repeat (- 4 (.indexOf generation "#")) ".")
+        append (repeat (- (+ 4 (.lastIndexOf generation "#")) (dec (count generation))) ".")]
+    {:zeroth (+ zeroth (count prepend)) :generation (into [] (concat prepend generation append))}))
+
+(defn next-generation [generation zeroth has-pot]
+  (let [initial-buffer (buffer-generation generation zeroth)
+        zeroth (:zeroth initial-buffer)
+        buffered (:generation initial-buffer)
+        first-pot (- 0 zeroth)
+        pots (range first-pot (inc (+ first-pot (count buffered))))
+        new-gen (map #(let [pot-pat (pot-pattern % buffered zeroth)
+                            pot-str (if (contains? has-pot pot-pat) "#" ".")]
+                        pot-str) pots)]
+    {:zeroth zeroth :generation new-gen}))
+
+(defn gen-sum [nth-gen]
+  (let [zeroth (:zeroth nth-gen)
+        gen (:generation nth-gen)
+        ps (map-indexed vector gen)
+        vals (map (fn [[pos v]] (if (= v "#") (- pos zeroth) 0)) ps)]
+    (sum vals)))
+
+(defn nth-generation [init-gen n has-pot]
+  (loop [iter 0
+         gen {:zeroth 0 :generation (s/split init-gen #"")}]
+    (if (= iter n)
+      gen
+      (recur (inc iter) (next-generation (:generation gen) (:zeroth gen) has-pot)))))
+
+(defn day12-p1 [init-gen has-pot]
+  (let [nth-gen (nth-generation init-gen 20 has-pot)]
+    (gen-sum nth-gen)))
+
+;(day12-p1 (:init-pots day12-input) (:mappings day12-input)) ;1447
+
+;;; Gen 89 starts a pattern of increasing by 21 every generation
+;;;
+(defn day12-p2 [init-gen has-pot]
+  (let [nth-gen (nth-generation init-gen 89 has-pot)
+        nth-1-gen (nth-generation init-gen 90 has-pot)
+        nth-sum (gen-sum nth-gen)
+        multiple (- (gen-sum nth-1-gen) nth-sum)
+        last-gen 50000000000
+        norm-to-last (* (- last-gen 89) multiple)]
+    (+ nth-sum norm-to-last)))
+
+;(day12-p2 (:init-pots day12-input) (:mappings day12-input)) ;1050000000480
