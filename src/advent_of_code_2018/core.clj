@@ -3,7 +3,9 @@
             [clojure.math.combinatorics :as combo]
             [clojure.set :as set]
             [clojure.java.io :as io]
-            [clojure.math.numeric-tower :as math]))
+            [clojure.math.numeric-tower :as math]
+            [clojure.string :as str])
+  (:import (java.util ArrayList)))
 
 ;;; https://adventofcode.com/2018
 
@@ -1028,3 +1030,66 @@
     (+ nth-sum norm-to-last)))
 
 ;(day12-p2 (:init-pots day12-input) (:mappings day12-input)) ;1050000000480
+
+
+;;;;Day 13
+
+(def day13-test-input "/->-\\        \n|   |  /----\\\n| /-+--+-\\  |\n| | |  | v  |\n\\-+-/  \\-+--/\n  \\------/   \n")
+
+
+;;;; Day 14
+;;;;;; SO gross that I had to use a mutable ArrayList, but using vec just killed performance, I don't know why :(
+(def day14-seed {:recipes (ArrayList. [3 7]) :e1 0 :e2 1} )
+
+(defn numTodigits
+  [num]
+  (map #(Character/digit % 10) (str num)))
+
+(defn digitsToNum
+  [digs]
+  (loop [n (first digs)
+         digs (rest digs)
+         res 0]
+    (if (nil? n)
+      res
+      (recur (first digs) (rest digs) (+ n (* 10 res))))))
+
+(defn next-recipes [input-map]
+  (let [recipes (:recipes input-map)
+        er1 (nth recipes (:e1 input-map))
+        er2 (nth recipes (:e2 input-map))
+        to-add (numTodigits (+ er1 er2))
+        result (doall (map #(.add recipes %) to-add))
+        ne1 (mod (+ (:e1 input-map) (inc er1)) (.size recipes))
+        ne2 (mod (+ (:e2 input-map) (inc er2)) (.size recipes))]
+    {:recipes recipes :e1 ne1 :e2 ne2 }))
+
+(defn recipes-n-times [n]
+  (loop [n n
+         r day14-seed]
+    (if (= n 1)
+      r
+      (recur (dec n) (next-recipes r)))))
+
+(defn recipes-until [desired]
+  (let [n-len (count desired)]
+    (loop [r day14-seed]
+      (if (and (> (count (:recipes r)) 10)
+               (str/includes? (s/join (.subList (:recipes r) (- (.size (:recipes r)) 10) (.size (:recipes r)))) desired))
+        r
+        (recur (next-recipes r))))))
+
+(defn day14-p1 [num-recipes]
+  (let [total (+ 10 num-recipes)
+        rs (recipes-n-times total)
+        rs (:recipes rs)
+        v (digitsToNum (.subList rs num-recipes (+ 10 num-recipes)))]
+    v))
+
+;(day14-p1 430971)                                           ;5715102879
+
+(defn day14-p2 [desired]
+  (let [r (:recipes (recipes-until desired))]
+    (str/index-of (s/join r) desired)))
+
+;(day14-p2 "430971")                                         ;20225706
