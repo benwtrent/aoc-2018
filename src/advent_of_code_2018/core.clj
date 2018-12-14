@@ -1038,8 +1038,7 @@
 
 
 ;;;; Day 14
-;;;;;; SO gross that I had to use a mutable ArrayList, but using vec just killed performance, I don't know why :(
-(def day14-seed {:recipes (ArrayList. [3 7]) :e1 0 :e2 1} )
+(def day14-seed {:recipes [3 7] :e1 0 :e2 1} )
 
 (defn numTodigits
   [num]
@@ -1059,9 +1058,9 @@
         er1 (nth recipes (:e1 input-map))
         er2 (nth recipes (:e2 input-map))
         to-add (numTodigits (+ er1 er2))
-        result (doall (map #(.add recipes %) to-add))
-        ne1 (mod (+ (:e1 input-map) (inc er1)) (.size recipes))
-        ne2 (mod (+ (:e2 input-map) (inc er2)) (.size recipes))]
+        recipes (reduce conj recipes to-add); using conj instead of (into [] concat) as this is just O(|to-add|), which is always 1 or 2
+        ne1 (mod (+ (:e1 input-map) (inc er1)) (count recipes))
+        ne2 (mod (+ (:e2 input-map) (inc er2)) (count recipes))]
     {:recipes recipes :e1 ne1 :e2 ne2 }))
 
 (defn recipes-n-times [n]
@@ -1075,7 +1074,7 @@
   (let [n-len (count desired)]
     (loop [r day14-seed]
       (if (and (> (count (:recipes r)) 10)
-               (str/includes? (s/join (.subList (:recipes r) (- (.size (:recipes r)) 10) (.size (:recipes r)))) desired))
+               (str/includes? (s/join (subvec (:recipes r) (- (.size (:recipes r)) 10) )) desired))
         r
         (recur (next-recipes r))))))
 
@@ -1083,7 +1082,7 @@
   (let [total (+ 10 num-recipes)
         rs (recipes-n-times total)
         rs (:recipes rs)
-        v (digitsToNum (.subList rs num-recipes (+ 10 num-recipes)))]
+        v (digitsToNum (subvec rs num-recipes (+ 10 num-recipes)))]
     v))
 
 ;(day14-p1 430971)                                           ;5715102879
@@ -1093,3 +1092,6 @@
     (str/index-of (s/join r) desired)))
 
 ;(day14-p2 "430971")                                         ;20225706
+
+(defn -main []
+ (println (day14-p2 "430971")))
